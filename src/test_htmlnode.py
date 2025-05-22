@@ -1,6 +1,6 @@
 import unittest
 
-from htmlnode import HTMLNode
+from htmlnode import HTMLNode, LeafNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -17,3 +17,10 @@ class TestHTMLNode(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             n.to_html()
 
+    def test_leaf_to_html_p(self):
+        n = LeafNode("p", "Hello, world!")
+        self.assertEqual(n.to_html(), "<p>Hello, world!</p>")
+
+    def test_leaf_to_html_a(self):
+        n = LeafNode("a", "Click me!", {"href": "https://www.google.com"})
+        self.assertEqual(n.to_html(), '<a href="https://www.google.com">Click me!</a>')
