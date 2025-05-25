@@ -28,6 +28,20 @@ class HTMLNode:
     def __repr__(self) -> str:
         return f"HTMLNode({self.tag}, {self.value}, {self.children}, {self.props})"
 
+    def _format_tag_and_props(self):
+        tag_f: list[str]
+        props_prefix: str
+        if self.props:
+            props_prefix = " "
+        else:
+            props_prefix = ""
+
+        if self.tag:
+            tag_f = [f"<{self.tag}{props_prefix}{self.props_to_html()}>",f"</{self.tag}>"]
+        else:
+            tag_f = ["",""]
+        return tag_f
+
 
 class LeafNode(HTMLNode):
    def __init__(self,
@@ -42,16 +56,25 @@ class LeafNode(HTMLNode):
         if not self.value:
             raise ValueError("All leaf nodes MUST have a value")
 
-        tag_f: list[str]
-        props_prefix: str
-        if self.props:
-            props_prefix = " "
-        else:
-            props_prefix = ""
-
-        if self.tag:
-            tag_f = [f"<{self.tag}{props_prefix}{self.props_to_html()}>",f"</{self.tag}>"]
-        else:
-            tag_f = ["",""]
+        tag_f = self._format_tag_and_props()
 
         return f"{tag_f[0]}{self.value}{tag_f[1]}"
+
+class ParentNode(HTMLNode):
+    def __init__(self,
+                 tag : str|None,
+                 children: list[HTMLNode],
+                 props : dict|None = None
+                 ):
+        super().__init__(tag, None, children, props)
+
+    def to_html(self):
+        if not self.tag:
+            raise ValueError("ParentNode must have a tag")
+        elif not self.children or len(self.children) == 0:
+            raise ValueError("ParentNode must have children")
+
+        tag_f = self._format_tag_and_props()
+        child_values = [x.to_html() for x in self.children]
+        return f"{tag_f[0]}{"".join(child_values)}{tag_f[1]}"
+
