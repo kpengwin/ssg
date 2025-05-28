@@ -2,7 +2,7 @@ import unittest
 
 from textnode import TextNode, TextType
 # from htmlnode import LeafNode
-from convert import text_node_to_html_node
+from convert import text_node_to_html_node, split_nodes_delimiter
 
 
 class TestTextNode(unittest.TestCase):
@@ -45,6 +45,18 @@ class TestTextNode(unittest.TestCase):
         self.assertEqual(html_node.props["src"], "https://imgur.com/lolcat")
         self.assertEqual(html_node.props["alt"], "This is an image node")
 
+
+
+class TestSplitDelimiter(unittest.TestCase):
+    def test_split_code(self):
+        node = TextNode("This is text with a `code block` word", TextType.NORMAL)
+        new_nodes = split_nodes_delimiter([node], "`", TextType.CODETEXT)
+        expected_result = [
+            TextNode("This is text with a ", TextType.NORMAL),
+            TextNode("code block", TextType.CODETEXT),
+            TextNode(" word", TextType.NORMAL),
+        ]
+        self.assertEqual(new_nodes, expected_result)
 
 if __name__ == "__main__":
     unittest.main()

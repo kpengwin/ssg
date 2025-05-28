@@ -23,3 +23,40 @@ def text_node_to_html_node(text_node: TextNode):
             return LeafNode('img', "", {"src": text_node.url, "alt": text_node.text})
         case _:
             raise Exception(f"Type {text_node.text_type} not an allowable value")
+
+################################################################################
+# Takes a list of "old nodes", a delimiter, and a text type.
+# Returns a new list of nodes, where any "text" type nodes 
+# in the input list are (potentially) split into multiple nodes
+# based on the syntax. For example, given the following input:
+#
+# node = TextNode("This is text with a `code block` word", TextType.NORMAL)
+# new_nodes = split_nodes_delimiter([node], "`", TextType.CODETEXT)
+#
+# new_nodes becomes:
+#
+# [
+#     TextNode("This is text with a ", TextType.NORMAL),
+#     TextNode("code block", TextType.CODETEXT),
+#     TextNode(" word", TextType.NORMAL),
+# ]
+################################################################################
+def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: T):
+
+    split_nodes = []
+    for node in old_nodes:
+        if node.text_type != T.NORMAL:
+            split_nodes.append(node)
+        if node.text.count(delimiter)%2:
+            raise Exception(f"unmatched delimiters: {delimiter}, invalid markdown")
+
+        texts = node.text.split(delimiter)
+        odd=True
+        for t in texts:
+            tt = T.NORMAL if odd else text_type
+            odd = not(odd)
+            if t:
+                split_nodes.append(TextNode(t, tt))
+
+    return split_nodes
+
