@@ -1,3 +1,4 @@
+import re
 from textnode import TextNode, TextType as T
 from htmlnode import LeafNode
 
@@ -47,6 +48,8 @@ def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: 
     for node in old_nodes:
         if node.text_type != T.NORMAL:
             split_nodes.append(node)
+            continue
+
         if node.text.count(delimiter)%2:
             raise Exception(f"unmatched delimiters: {delimiter}, invalid markdown")
 
@@ -60,3 +63,74 @@ def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: 
 
     return split_nodes
 
+
+# takes raw markdown text and returns a list of tuples.
+# Each tuple should contain the alt text and the URL of any markdown images.
+def extract_markdown_images(text: str):
+    matches = re.findall("!\[([^\]]*)\]\(([^\)]*)\)", text) # pyright: ignore (reportInvalidStringEscapeSequence)
+    return matches
+
+# takes raw markdown text and returns a list of tuples.
+# Each tuple should contain the anchor text and the URL of any markdown links.
+def extract_markdown_links(text: str):
+    matches = re.findall("(?<!!)\[([^\]]*)\]\(([^\)]*)\)", text) # pyright: ignore (reportInvalidStringEscapeSequence)
+    return matches
+
+def split_nodes_image(nodes: list[TextNode]):
+    split_nodes = []
+    for node in nodes:
+        matches = extract_markdown_images(node.text)
+        if (node.text_type != T.NORMAL) or (len(matches) == 0):
+            split_nodes.append(node)
+            continue
+
+        nodetext = node.text
+        for match in matches:
+            alt = match[0]
+            link = match[1]
+            texts = nodetext.split(f"![{alt}]({link})", 1)
+            split_nodes.append(TextNode(texts[0], T.NORMAL))
+            split_nodes.append(TextNode(alt, T.IMAGE, link))
+            if len(texts) == 2:
+                nodetext = texts[1]
+
+        if nodetext:
+            split_nodes.append(TextNode(nodetext, T.NORMAL))
+    return split_nodes
+
+def split_nodes_link(nodes: list[TextNode]):
+    split_nodes = []
+    for node in nodes:
+        matches = extract_markdown_links(node.text)
+        if (node.text_type != T.NORMAL) or (len(matches) == 0):
+            split_nodes.append(node)
+            continue
+
+        nodetext = node.text
+        for match in matches:
+            anchor = match[0]
+            link = match[1]
+            texts = nodetext.split(f"[{anchor}]({link})", 1)
+            split_nodes.append(TextNode(texts[0], T.NORMAL))
+            split_nodes.append(TextNode(anchor, T.LINK, link))
+            if len(texts) == 2:
+                nodetext = texts[1]
+
+        if nodetext:
+            split_nodes.append(TextNode(nodetext, T.NORMAL))
+    return split_nodes
+
+def text_to_text_nodes(text: str):
+    textNodes = [TextNode(text, T.NORMAL)]
+    delimiters = {
+        "**": T.BOLD,
+        "_": T.ITALIC,
+        "`": T.CODETEXT
+    }
+    for d in delimiters:
+        textNodes = split_nodes_delimiter(textNodes, d, delimiters[d])
+
+    textNodes = split_nodes_image(textNodes)
+    textNodes = split_nodes_link(textNodes)
+
+    return textNodes
