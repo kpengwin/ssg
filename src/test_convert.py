@@ -1,6 +1,6 @@
 import unittest
 
-from textnode import TextNode, TextType
+from textnode import TextNode, TextType, BlockType
 # from htmlnode import LeafNode
 from convert import (
                         text_node_to_html_node,
@@ -10,6 +10,8 @@ from convert import (
                         split_nodes_image,
                         split_nodes_link,
                         text_to_text_nodes,
+                        markdown_to_blocks,
+                        block_to_block_type,
                     )
 
 
@@ -200,6 +202,111 @@ class TestTextToTextNodes(unittest.TestCase):
         ]
         self.assertListEqual(expected, text_to_text_nodes(text))
  
+class TestMarkdownToBlocks(unittest.TestCase):
+    def test_markdown_to_blocks(self):
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_blocks_remove_blank_blocks(self):
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+
+
+
+
+
+- This is a list
+- with items
+
+
+
+
+
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+
+class TestBlocksToBlockType(unittest.TestCase):
+    def test_heading(self):
+        md = """
+## Heading
+""".strip()
+        blockType = block_to_block_type(md)
+        self.assertEqual(blockType, BlockType.HEADING)
+
+    def test_code(self):
+        md = """
+```
+print(something)
+```
+""".strip()
+        blockType = block_to_block_type(md)
+        self.assertEqual(blockType, BlockType.CODE)
+
+    def test_quote(self):
+        md = \
+"""
+>Quote
+>A great quote
+>hopefully
+""".strip()
+        blockType = block_to_block_type(md)
+        self.assertEqual(blockType, BlockType.QUOTE)
+
+    def test_unordered_list(self):
+        md = """
+- one
+- two
+- three
+""".strip()
+        blockType = block_to_block_type(md)
+        self.assertEqual(blockType, BlockType.UNORDERED_LIST)
+
+    def test_ordered_list(self):
+        md = """
+1. one
+2. two
+3. three
+""".strip()
+        blockType = block_to_block_type(md)
+        self.assertEqual(blockType, BlockType.ORDERED_LIST)
+
+    def test_paragraph(self):
+        md = """
+This is just a normal paragraph.
+Could be interesting, or not.
+"""
+        blockType = block_to_block_type(md)
+        self.assertEqual(blockType, BlockType.PARAGRAPH)
+
 
 if __name__ == "__main__":
     unittest.main()

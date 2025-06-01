@@ -1,5 +1,5 @@
 import re
-from textnode import TextNode, TextType as T
+from textnode import TextNode, TextType as T, BlockType as B
 from htmlnode import LeafNode
 
 def text_node_to_html_node(text_node: TextNode):
@@ -134,3 +134,44 @@ def text_to_text_nodes(text: str):
     textNodes = split_nodes_link(textNodes)
 
     return textNodes
+
+def markdown_to_blocks(text:str):
+    blocks = text.split("\n\n")
+    blocks = [b.strip() for b in blocks if b.strip()]
+
+    return blocks
+
+def block_to_block_type(block: str):
+    # Headings start with 1-6 # characters, followed by a space and then the heading text.
+    if re.match("#{1,6} .*", block):
+        return B.HEADING
+    # Code blocks must start with 3 backticks and end with 3 backticks.
+    if block[:3] == '```' and block[-3:] == "```":
+        return B.CODE
+    # Every line in a quote block must start with a > character.
+    quote_block = True
+    for line in block.split("\n"):
+        if not(line) or line[0] != ">":
+            quote_block = False
+            break
+    if quote_block:
+        return B.QUOTE
+    # Every line in an unordered list block must start with a - character, followed by a space.
+    ul_block = True
+    for line in block.split("\n"):
+        if len(line)<2 or line[:2] != "- ":
+            ul_block = False
+            break
+    if ul_block:
+        return B.UNORDERED_LIST
+    # Every line in an ordered list block must start with a number followed by a . character and a space. The number must start at 1 and increment by 1 for each line.
+    ol_block = True
+    for line in block.split("\n"):
+        if len(line)<3 or not(re.match("\d\. ", line)): # pyright: ignore (reportInvalidStringEscapeSequence)
+            ol_block = False
+            break
+    if ol_block:
+        return B.ORDERED_LIST
+
+    # If none of the above conditions are met, the block is a normal paragraph.
+    return B.PARAGRAPH
