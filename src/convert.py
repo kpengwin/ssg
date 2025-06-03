@@ -67,13 +67,13 @@ def split_nodes_delimiter(old_nodes: list[TextNode], delimiter: str, text_type: 
 # takes raw markdown text and returns a list of tuples.
 # Each tuple should contain the alt text and the URL of any markdown images.
 def extract_markdown_images(text: str):
-    matches = re.findall("!\[([^\]]*)\]\(([^\)]*)\)", text) # pyright: ignore (reportInvalidStringEscapeSequence)
+    matches = re.findall(r"!\[([^\]]*)\]\(([^\)]*)\)", text)
     return matches
 
 # takes raw markdown text and returns a list of tuples.
 # Each tuple should contain the anchor text and the URL of any markdown links.
 def extract_markdown_links(text: str):
-    matches = re.findall("(?<!!)\[([^\]]*)\]\(([^\)]*)\)", text) # pyright: ignore (reportInvalidStringEscapeSequence)
+    matches = re.findall(r"(?<!!)\[([^\]]*)\]\(([^\)]*)\)", text)
     return matches
 
 def split_nodes_image(nodes: list[TextNode]):
@@ -143,7 +143,7 @@ def markdown_to_blocks(text:str):
 
 def block_to_block_type(block: str):
     # Headings start with 1-6 # characters, followed by a space and then the heading text.
-    if re.match("#{1,6} .*", block):
+    if re.match(r"#{1,6} .*", block):
         return B.HEADING
     # Code blocks must start with 3 backticks and end with 3 backticks.
     if block[:3] == '```' and block[-3:] == "```":
@@ -167,7 +167,7 @@ def block_to_block_type(block: str):
     # Every line in an ordered list block must start with a number followed by a . character and a space. The number must start at 1 and increment by 1 for each line.
     ol_block = True
     for line in block.split("\n"):
-        if len(line)<3 or not(re.match("\d\. ", line)): # pyright: ignore (reportInvalidStringEscapeSequence)
+        if len(line)<3 or not(re.match(r"\d\. ", line)):
             ol_block = False
             break
     if ol_block:
@@ -175,3 +175,7 @@ def block_to_block_type(block: str):
 
     # If none of the above conditions are met, the block is a normal paragraph.
     return B.PARAGRAPH
+
+
+def markdown_to_html_node():
+    pass
