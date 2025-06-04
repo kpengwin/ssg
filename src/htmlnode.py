@@ -1,10 +1,10 @@
-
+from typing import List, Union
 
 class HTMLNode:
     def __init__(self,
                  tag : str|None = None,
                  value : str|None = None,
-                 children : list["HTMLNode"]|None = None,
+                 children : List[Union["ParentNode", "LeafNode"]]|None = None,
                  props : dict|None = None
                  ):
         self.tag = tag
@@ -63,7 +63,7 @@ class LeafNode(HTMLNode):
 class ParentNode(HTMLNode):
     def __init__(self,
                  tag : str|None,
-                 children: list[HTMLNode],
+                 children: List[Union["ParentNode", "LeafNode"]],
                  props : dict|None = None
                  ):
         super().__init__(tag, None, children, props)

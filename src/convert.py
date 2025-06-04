@@ -1,6 +1,7 @@
 import re
+from typing import List, Union
 from textnode import TextNode, TextType as T, BlockType as B
-from htmlnode import LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 def text_node_to_html_node(text_node: TextNode):
     match(text_node.text_type):
@@ -177,5 +178,46 @@ def block_to_block_type(block: str):
     return B.PARAGRAPH
 
 
-def markdown_to_html_node():
-    pass
+def text_to_children(text) -> List[Union[LeafNode, ParentNode]]:
+    text_nodes = text_to_text_nodes(text)
+    return [text_node_to_html_node(node) for node in text_nodes]
+
+    # Split the markdown into blocks (you already have a function for this)
+    # Loop over each block:
+    #     Determine the type of block (you already have a function for this)
+    #     Based on the type of block, create a new HTMLNode with the proper data
+    #     Assign the proper child HTMLNode objects to the block node. I created a shared text_to_children(text) function that works for all block types. It takes a string of text and returns a list of HTMLNodes that represent the inline markdown using previously created functions (think TextNode -> HTMLNode).
+    #     The "code" block is a bit of a special case: it should not do any inline markdown parsing of its children. I didn't use my text_to_children function for this block type, I manually made a TextNode and used text_node_to_html_node.
+    # Make all the block nodes children under a single parent HTML node (which should just be a div) and return it.
+def markdown_to_html_node(markdown: str):
+    blocks = markdown_to_blocks(markdown)
+    nodes = []
+    for block in blocks:
+        blocktype = block_to_block_type(block)
+        match(blocktype):
+            case (B.HEADING):
+                header = re.match(r"#{1,6} ", block)
+                if not header:
+                    raise Exception("Something is broken")
+                hnum = len(header.group())-1
+                nodes.append(ParentNode("h"+str(hnum), text_to_children(block[header.span()[1]:])))
+            case (B.CODE):
+                nodes.append(ParentNode("pre", [text_node_to_html_node(TextNode(block[4:-3], T.CODETEXT))]))
+            case (B.QUOTE):
+                text = re.sub('>', '', block)
+                nodes.append(ParentNode("blockquote", text_to_children(text)))
+            case (B.UNORDERED_LIST):
+                li = []
+                for line in block.split("\n"):
+                    li.append(ParentNode("li", text_to_children(line[2:])))
+                nodes.append(ParentNode("ul", li))
+            case (B.ORDERED_LIST):
+                li = []
+                for line in block.split("\n"):
+                    li.append(ParentNode("li", text_to_children(re.match(r"(\d\. )(.*)", line).group(2))))
+                nodes.append(ParentNode("ul", li))
+            case (B.PARAGRAPH):
+                text = " ".join(block.split("\n"))
+                nodes.append(ParentNode("p", text_to_children(text)))
+    return ParentNode("div", nodes)
+
