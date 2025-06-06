@@ -13,6 +13,7 @@ from convert import (
                         markdown_to_blocks,
                         block_to_block_type,
                         markdown_to_html_node,
+                        extract_title,
                     )
 
 
@@ -175,6 +176,21 @@ class TestSplitLinks(unittest.TestCase):
             ],
             new_nodes,
         )
+
+    def test_doesnt_make_blank_before_starting_link(self):
+        node = TextNode(
+            "[link](https://i.imgur.com/zjjcJKZ.png) and not another",
+            TextType.NORMAL,
+        )
+        new_nodes = split_nodes_link([node])
+        self.assertListEqual(
+            [
+                TextNode("link", TextType.LINK, "https://i.imgur.com/zjjcJKZ.png"),
+                TextNode(" and not another", TextType.NORMAL),
+            ],
+            new_nodes,
+        )
+
 
 
 class TestTextToTextNodes(unittest.TestCase):
@@ -344,5 +360,32 @@ the **same** even with inline stuff
             "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
         )
 
+
+class TestMarkdownToHTMLNode(unittest.TestCase):
+    def test_extract_title(self):
+        md = "# Test"
+        result = extract_title(md)
+        self.assertEqual(result, "Test")
+
+    def test_deletes_whitespace(self):
+        md = "#   Test  "
+        result = extract_title(md)
+        self.assertEqual(result, "Test")
+
+    def test_in_multiline(self):
+        md = """
+Not the header
+
+# Test
+
+Also not the header
+"""
+        result = extract_title(md)
+        self.assertEqual(result, "Test")
+
+
+
 if __name__ == "__main__":
     unittest.main()
+
+

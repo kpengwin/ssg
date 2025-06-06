@@ -49,12 +49,11 @@ class LeafNode(HTMLNode):
                  value : str,
                  props : dict|None = None
                  ):
-
         super().__init__(tag, value, None, props)
 
    def to_html(self):
-        if not self.value:
-            raise ValueError("All leaf nodes MUST have a value")
+        if not self.value and not(self.tag == "img"):
+            raise ValueError(f"All leaf nodes MUST have a value - {self}")
 
         tag_f = self._format_tag_and_props()
 

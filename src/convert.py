@@ -1,3 +1,4 @@
+import os
 import re
 from typing import List, Union
 from textnode import TextNode, TextType as T, BlockType as B
@@ -90,7 +91,8 @@ def split_nodes_image(nodes: list[TextNode]):
             alt = match[0]
             link = match[1]
             texts = nodetext.split(f"![{alt}]({link})", 1)
-            split_nodes.append(TextNode(texts[0], T.NORMAL))
+            if texts[0]:
+                split_nodes.append(TextNode(texts[0], T.NORMAL))
             split_nodes.append(TextNode(alt, T.IMAGE, link))
             if len(texts) == 2:
                 nodetext = texts[1]
@@ -112,7 +114,8 @@ def split_nodes_link(nodes: list[TextNode]):
             anchor = match[0]
             link = match[1]
             texts = nodetext.split(f"[{anchor}]({link})", 1)
-            split_nodes.append(TextNode(texts[0], T.NORMAL))
+            if texts[0]:
+                split_nodes.append(TextNode(texts[0], T.NORMAL))
             split_nodes.append(TextNode(anchor, T.LINK, link))
             if len(texts) == 2:
                 nodetext = texts[1]
@@ -193,7 +196,9 @@ def markdown_to_html_node(markdown: str):
     blocks = markdown_to_blocks(markdown)
     nodes = []
     for block in blocks:
+        print(f"[\n\t{block.strip()}\n]")
         blocktype = block_to_block_type(block)
+        print(f"^ Blocktype {blocktype}")
         match(blocktype):
             case (B.HEADING):
                 header = re.match(r"#{1,6} ", block)
@@ -205,7 +210,7 @@ def markdown_to_html_node(markdown: str):
                 nodes.append(ParentNode("pre", [text_node_to_html_node(TextNode(block[4:-3], T.CODETEXT))]))
             case (B.QUOTE):
                 text = re.sub('>', '', block)
-                nodes.append(ParentNode("blockquote", text_to_children(text)))
+                nodes.append(ParentNode("blockquote", text_to_children(text.strip())))
             case (B.UNORDERED_LIST):
                 li = []
                 for line in block.split("\n"):
@@ -214,10 +219,42 @@ def markdown_to_html_node(markdown: str):
             case (B.ORDERED_LIST):
                 li = []
                 for line in block.split("\n"):
-                    li.append(ParentNode("li", text_to_children(re.match(r"(\d\. )(.*)", line).group(2))))
+                    li.append(ParentNode("li", text_to_children(re.match(r"(\d* )(.*)", line.strip()[2:]).group(2))))
                 nodes.append(ParentNode("ul", li))
             case (B.PARAGRAPH):
                 text = " ".join(block.split("\n"))
                 nodes.append(ParentNode("p", text_to_children(text)))
     return ParentNode("div", nodes)
+
+def extract_title(md):
+    for line in md.split('\n'):
+        if line[:2] == "# ":
+            return line[2:].strip()
+    raise Exception("No title found")
+
+
+def generate_page(from_path: str, template_path: str, dest_path: str):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+    with open(from_path) as from_:
+        source_md = from_.read()
+    with open(template_path) as template:
+        template_html = template.read()
+
+    title = extract_title(source_md)
+    converted_markdown = markdown_to_html_node(source_md)
+    print(f"{converted_markdown}")
+    converted_markdown = converted_markdown.to_html()
+    template_html = template_html.replace("{{ Title }}", title)
+    template_html = template_html.replace("{{ Content }}", converted_markdown)
+    dirs = dest_path.split('/')
+    if len(dirs) > 1:
+        path = ""
+        for dir in dirs[:-1]:
+            if not os.path.exists(path+dir):
+                os.mkdir(path+dir)
+            path = path + dir + '/'
+
+    with open(dest_path, "a+") as outfile:
+        outfile.write(template_html)
+
 
