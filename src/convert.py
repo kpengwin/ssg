@@ -192,13 +192,15 @@ def text_to_children(text) -> List[Union[LeafNode, ParentNode]]:
     #     Assign the proper child HTMLNode objects to the block node. I created a shared text_to_children(text) function that works for all block types. It takes a string of text and returns a list of HTMLNodes that represent the inline markdown using previously created functions (think TextNode -> HTMLNode).
     #     The "code" block is a bit of a special case: it should not do any inline markdown parsing of its children. I didn't use my text_to_children function for this block type, I manually made a TextNode and used text_node_to_html_node.
     # Make all the block nodes children under a single parent HTML node (which should just be a div) and return it.
-def markdown_to_html_node(markdown: str):
+def markdown_to_html_node(markdown: str, verbose: bool = False):
     blocks = markdown_to_blocks(markdown)
     nodes = []
     for block in blocks:
-        print(f"[\n\t{block.strip()}\n]")
+        if verbose:
+            print(f"[\n\t{block.strip()}\n]")
         blocktype = block_to_block_type(block)
-        print(f"^ Blocktype {blocktype}")
+        if verbose:
+            print(f"^ Blocktype {blocktype}")
         match(blocktype):
             case (B.HEADING):
                 header = re.match(r"#{1,6} ", block)
@@ -233,7 +235,7 @@ def extract_title(md):
     raise Exception("No title found")
 
 
-def generate_page(from_path: str, template_path: str, dest_path: str):
+def generate_page(from_path: str, template_path: str, dest_path: str, verbose: bool = False, basepath: str = '/'):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     with open(from_path) as from_:
         source_md = from_.read()
@@ -241,11 +243,14 @@ def generate_page(from_path: str, template_path: str, dest_path: str):
         template_html = template.read()
 
     title = extract_title(source_md)
-    converted_markdown = markdown_to_html_node(source_md)
-    print(f"{converted_markdown}")
+    converted_markdown = markdown_to_html_node(source_md, verbose)
+    if verbose:
+        print(f"{converted_markdown}")
     converted_markdown = converted_markdown.to_html()
     template_html = template_html.replace("{{ Title }}", title)
     template_html = template_html.replace("{{ Content }}", converted_markdown)
+    template_html = template_html.replace('href="/', f'href="{basepath}')
+    template_html = template_html.replace('src="/', f'src="{basepath}')
     dirs = dest_path.split('/')
     if len(dirs) > 1:
         path = ""
